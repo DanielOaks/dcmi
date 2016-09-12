@@ -1,0 +1,67 @@
+// Written in 2016 by Daniel Oaks <daniel@danieloaks.net>
+//
+// To the extent possible under law, the author(s) have dedicated all copyright
+// and related and neighboring rights to this software to the public domain
+// worldwide. This software is distributed without any warranty.
+//
+// You should have received a copy of the CC0 Public Domain Dedication along
+// with this software. If not, see
+// <http://creativecommons.org/publicdomain/zero/1.0/>.
+
+// Protocol definition file for DCMI protocol.
+//
+// The DCMI protocol lets IRC servers talk to each other as part of a mesh
+// network. DCMI S2S networks allow for hot failover and a reduced chance for
+// netsplits across a network.
+//
+// NOTE: THIS IS NOWHERE NEAR FINISHED. DO NOT USE THIS. DANGER AWAITS.
+
+syntax = "proto3";
+package dcmi_irc;
+
+// ExtendedServerID is used primarily in checking for loops in new server
+// links, and used to determine whether an SID conflict needs to be resolved or
+// whether it's just a loop.
+message ExtendedServerID {
+    // SID is used in lots of places, and is the runtime ID of a server.
+    required uint16 SID = 1;
+    // Epoch time that the SID was assigned.
+    required int64 Timestamp = 2;
+    // Name of the server as text.
+    required string Name = 3;
+}
+
+// Regular server-to-server message.
+// Once a link is established, those servers send each other a continuious
+// stream of S2S messages.
+message S2S {
+    // from_server represents which server originated this message, and stays
+    // the same as the message is propogated.
+    required ShortSID from_server;
+
+    // message_id is used by remote servers to check and ensure that they see
+    // messages coming from all their privmsg-only links in an appropriate
+    // timeframs. It should be unique to at least 1000 broadcast messages, but
+    // how it is generated is not important (though implementations may find a
+    // counter useful in generating this value).
+    required uint64 message_id;
+
+    // S2SMessageScope controls how the message is transferred and propogated.
+    enum S2SMessageScope {
+        LINK_LOCAL = 0; // goes over all links, not propogated
+        UNICAST = 1; // can go over and be propogated via any links
+        BROADCAST = 2; // goes over and propogated via spanning-tree links
+        //TODO(dan): throwing around a possible multicast scope, for transient
+        //           channel messages
+    }
+
+    required S2SMessageScope scope;
+
+    // S2SMessageType describes the effect that the message has.
+    enum S2SMessageType {
+        STATE = 0; // state of an object
+        TRANSIENT = 1; // transient message such as a ping or a PRIVMSG/NOTICE
+    }
+
+    required S2SMessageType type;
+}

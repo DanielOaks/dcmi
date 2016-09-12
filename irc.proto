@@ -1,0 +1,91 @@
+// Written in 2016 by Daniel Oaks <daniel@danieloaks.net>
+//
+// To the extent possible under law, the author(s) have dedicated all copyright
+// and related and neighboring rights to this software to the public domain
+// worldwide. This software is distributed without any warranty.
+//
+// You should have received a copy of the CC0 Public Domain Dedication along
+// with this software. If not, see
+// <http://creativecommons.org/publicdomain/zero/1.0/>.
+
+// Protocol definition file for DCMI protocol.
+//
+// The DCMI protocol lets IRC servers talk to each other as part of a mesh
+// network. DCMI S2S networks allow for hot failover and a reduced chance for
+// netsplits across a network.
+//
+// NOTE: THIS IS NOWHERE NEAR FINISHED. DO NOT USE THIS. DANGER AWAITS.
+
+syntax = "proto3";
+package dcmi_irc;
+
+// objects
+message ServerObject {
+    // runtime ID of a server.
+    required uint16 SID = 1;
+
+    
+}
+
+
+message Object {
+    enum ObjectType {
+        SERVER = 0; // a server
+        CLIENT = 1; // a client
+        CHANNEL = 2; // a channel
+        //TODO(dan): throwing around types like CLIENT_ACCOUNT, etc?
+    }
+
+    required ObjectType type;
+
+    enum 
+}
+
+// types
+message FullServerID {
+    required uint32 SID = 1;
+    required int64 Timestamp = 2;
+    required string Name = 3;
+}
+
+// handshake messages
+message HandshakeIAm {
+    required FullServerID;
+}
+
+message HandshakeIKnow {
+    repeated FullServerID;
+}
+
+message HandshakeOk {
+    repeated FullServerID;
+}
+
+message HandshakeConflict {
+    message ConflictingSID {
+        FullServerID ServerID;
+        bool IllRename;
+    }
+    repeated ConflictingSID ConflictingSIDs = 1
+}
+
+// regular messages
+message S2S {
+    // S2SMessageScope controls how the message is transferred and propogated.
+    enum S2SMessageScope {
+        LINK_LOCAL = 0; // goes over all links, not propogated
+        UNICAST = 1; // goes over and propogated via any links
+        BROADCAST = 2; // goes over and propogated via spanning-tree (broadcast) links
+        //TODO(dan): throwing around a possible multicast scope, for transient channel messages
+    }
+
+    required Scope S2SMessageScope;
+
+    // S2SMessageType describes the effect that the message has.
+    enum S2SMessageType {
+        STATE = 0; // state of an object
+        TRANSIENT = 1; // transient message such as a PRIVMSG/NOTICE
+    }
+
+    required S2SMessageType Type;
+}
